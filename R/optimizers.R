@@ -435,7 +435,8 @@ avagrad_memoized_optimizer2<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
 
 #' @importFrom stats fitted lm
 #' @importFrom utils tail
-avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
+avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                                       time=time,LL=LL){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -460,6 +461,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   dev<-rep(NA,ctl$maxIter)
   dev_smooth<-rep(NA,ctl$maxIter)
   for(t in 1:ctl$maxIter){ #one iteration = 1 epoch
+    ll <- 0
     #create minibatch indices
     mb_list<-create_minibatches(N,ctl$batch_size,randomize=TRUE)
     B<-length(mb_list)
@@ -491,6 +493,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       v_v<-ctl$betas[2]*v_v+(1-ctl$betas[2])*g_v^2
 
       R<-rfunc(U[mb,],V,offsets[mb])
+      ll <- ll + sum(Ymb*R-exp(R))
       # if(gf$glmpca_fam %in% c("nb","nb2")){
       if(gf$glmpca_fam == "nb"){
         th<-gf$nb_theta
@@ -513,6 +516,11 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
     } #end of loop over minibatches (end of epoch)
 
     #assess convergence after end of each epoch
+    ### P. NICOPL TIMING
+    time <- c(time,Sys.time())
+    ##Compute likelihood
+    LL <- c(LL, ll)
+    print(ll)
     dev[t]<-adj_factor*gf$dev_func(Ymb,R,sz=szb)
     check_divergence(dev[t],"avagrad",ctl$lr)
     j<-seq.int(max(1,t-10+1),t)
@@ -535,5 +543,5 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
     }
   }
   list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,
-       dev_smooth=check_dev_decr(dev_smooth[1:t]))
+       dev_smooth=check_dev_decr(dev_smooth[1:t]),time=time,LL=LL)
 }

@@ -250,7 +250,8 @@ glmpca<-function(Y, L, fam=c("poi","nb","nb2","binom","mult","bern"),
         if(minibatch=="none"){
           fit<-avagrad_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL)
         } else if(minibatch=="stochastic"){
-          fit<-avagrad_stochastic_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets)
+          fit<-avagrad_stochastic_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                                            time=time,LL=LL)
         } else {
           fit<-avagrad_memoized_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets)
         },

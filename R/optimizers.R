@@ -129,7 +129,15 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     R <- rfunc(U,V,offsets)
     ll <- sum(Y*R-exp(R))
     LL <- c(LL, ll)
+
     print(ll)
+    if(length(LL) > 30) {
+      t <- length(LL)
+      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+        #Convergence
+        return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
+      }
+    }
     check_divergence(dev[t],"fisher",ctl$penalty)
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && check_convergence(dev[t-1],dev[t],ctl$tol,ctl$minDev)){
@@ -214,6 +222,13 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
     R <- rfunc(U,V,offsets)
     ll <- sum(Y*R-exp(R))
     LL <- c(LL, ll)
+    if(length(LL) > 30) {
+      t <- length(LL)
+      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+        #Convergence
+        return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
+      }
+    }
     print(ll)
     check_divergence(dev[t],"avagrad",ctl$lr)
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
@@ -521,6 +536,13 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     ##Compute likelihood
     LL <- c(LL, ll)
     print(ll)
+    if(length(LL) > 30) {
+      t <- length(LL)
+      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+        #Convergence
+        return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
+      }
+    }
     dev[t]<-adj_factor*gf$dev_func(Ymb,R,sz=szb)
     check_divergence(dev[t],"avagrad",ctl$lr)
     j<-seq.int(max(1,t-10+1),t)

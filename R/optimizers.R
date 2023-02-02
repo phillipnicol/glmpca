@@ -1,7 +1,7 @@
 # Algorithms to optimize the GLM-PCA objective function.
 
 #Global variables
-NB_THETA_MAX<-1e4 
+NB_THETA_MAX<-1e4
 #negative binomial theta values larger than this are truncated to this value
 #motivation: large nb_theta makes it essentially poisson, no point in estimating if beyond this point.
 
@@ -53,7 +53,7 @@ print_status<-function(curr,iter,nb_theta=NULL){
   dev_format<-format(curr,scientific=TRUE,digits=4)
   msg<-paste0("Iteration: ",iter," | deviance=",dev_format)
   if(length(nb_theta)==1){ msg<-paste0(msg," | nb_theta: ",signif(nb_theta,3)) }
-  message(msg) 
+  message(msg)
 }
 
 nb_theta_infograd<-function(Y,Mu,th,grad_only=TRUE){
@@ -74,11 +74,11 @@ nb_theta_infograd<-function(Y,Mu,th,grad_only=TRUE){
   #dL/dtheta*dtheta/du
   #note: th+Y uses recycling! We assume length(th)==nrow(Y)
   ig<-list(grad=th*reduce_func(digamma(th+Y)-digamma(th)+log(th)+1-log(th+Mu)-(Y+th)/(Mu+th)))
-  if(grad_only){ 
-    return(ig) 
+  if(grad_only){
+    return(ig)
   } else {
     #d^2L/dtheta^2 * (dtheta/du)^2
-    info1<- -th^2*reduce_func(trigamma(th+Mu)-trigamma(th)+1/th-2/(Mu+th)+(Y+th)/(Mu+th)^2)  
+    info1<- -th^2*reduce_func(trigamma(th+Mu)-trigamma(th)+1/th-2/(Mu+th)+(Y+th)/(Mu+th)^2)
     #dL/dtheta*d^2theta/du^2 = grad
     ig$info<- info1-ig$grad
     return(ig)
@@ -109,11 +109,11 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   #vid: which columns of V contain updateable parameters?
   #ctl: list of optimization control params: penalty,maxIter,minIter,and tol
   #gf: object of type glmpca_family
-  #...for fam 'poi','nb','nb2' gf contains the 'offsets' 
+  #...for fam 'poi','nb','nb2' gf contains the 'offsets'
   #...for fam 'binom' offsets evaluates to NULL, can still be passed to rfunc
   #rfunc: a function that computes the linear predictor ...
   #...of the GLM from U,V, and offsets.
-  
+
   #lid: which columns of U,V contain the unsupervised factors & loadings
   lid<-intersect(uid,vid)
   stopifnot(all(c("penalty","maxIter","minIter","tol") %in% names(ctl)))
@@ -144,7 +144,7 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       infos<- (ig$info) %*% U[,k]^2 + ctl$penalty*(k %in% lid)
       V[,k]<-V[,k]+grads/infos
     }
-    
+
     # alternative: fisher scoring on full blocks, very unstable numerically
     # ig<- gf$infograd(Y,rfunc(U,V,offsets))
     # grad_u<- crossprod(ig$grad, V[,uid]) - penalty*U[,uid]*(uid %in% lid)
@@ -153,7 +153,7 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
     # info_v<- (ig$info) %*% U[,vid]^2 + penalty*(vid %in% lid)
     # U[,uid]<-U[,uid]+lr*grad_u/info_u
     # V[,vid]<-V[,vid]+lr*grad_v/info_v
-    
+
     if(gf$glmpca_fam %in% c("nb","nb2")){
       #pmin here is to prevent extremely large values, which don't make much difference in the model fitting.
       nb_theta<-est_nb_theta_fisher(Y, gf$linkinv(rfunc(U,V,offsets)), gf$nb_theta)
@@ -173,7 +173,7 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
 #avagrad illustrated on toy function ...
 #https://github.com/willtownes/optimization-practice/blob/master/practice.Rmd#L159
 
-avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
+avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -184,7 +184,7 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   #gf: object of type glmpca_family
   #rfunc: a function that computes the linear predictor ...
   #...of the GLM from U,V, and offsets.
-  
+
   #lid: which columns of U,V contain the unsupervised factors & loadings
   lid<-intersect(uid,vid)
   #avagrad initialization: prefix m_ refers to momentum, v_ refers to variance
@@ -200,6 +200,13 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   dev<-rep(NA,ctl$maxIter)
   for(t in 1:ctl$maxIter){
     dev[t]<-gf$dev_func(Y, rfunc(U,V,offsets), sz=sz)
+    ### P. NICOPL TIMING
+    time <- c(time,Sys.time())
+    ##Compute likelihood
+    R <- rfunc(U,V,offsets)
+    ll <- sum(Y*R-exp(R))
+    LL <- c(LL, ll)
+    print(ll)
     check_divergence(dev[t],"avagrad",ctl$lr)
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && check_convergence(dev[t-1],dev[t],ctl$tol,ctl$minDev)){
@@ -219,8 +226,8 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
     V[,vid]<-V[,vid] - ctl$lr*(eta_v/l2norm(eta_v/sqrt(k)))*m_v
     v_u<-ctl$betas[2]*v_u+(1-ctl$betas[2])*g_u^2
     v_v<-ctl$betas[2]*v_v+(1-ctl$betas[2])*g_v^2
-    
-    if(gf$glmpca_fam %in% c("nb","nb2")){  
+
+    if(gf$glmpca_fam %in% c("nb","nb2")){
       #note: all the g,m,eta, terms here are with respect to log(nb_theta)
       th<-gf$nb_theta
       # lth<-log(th)
@@ -235,11 +242,12 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       gf<-glmpca_family(gf$glmpca_fam, nb_theta=pmin(NB_THETA_MAX,nb_theta))
     }
   }
-  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf)
+  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time)
 }
 
 #this one updates loadings V after each epoch, equivalent to full gradient
-avagrad_memoized_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
+avagrad_memoized_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                                     time, LL){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -258,24 +266,25 @@ avagrad_memoized_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   m_v<-v_v<-matrix(0,nrow=J,ncol=Kv)
   k<-length(m_u)+length(m_v) #total number of parameters being updated
   # if(gf$glmpca_fam %in% c("nb","nb2")){ m_th<-v_th<- 0*gf$nb_theta }
-  
+
   #initialize minibatches (fixed for all epochs) and sufficient statistics
   mb_list<-create_minibatches(N,ctl$batch_size,randomize=TRUE)
   B<-length(mb_list)
   #3D array, grad of V will be rowSums(ss,dims=2) (ie sum on the last dim)
-  S<-array(0,dim=c(J,Kv,B)) 
+  S<-array(0,dim=c(J,Kv,B))
   #g_v<-m_v
   sz<-if(gf$glmpca_fam=="binom"){ gf$binom_n } else { NULL }
-  
+
   #run optimization
   dev<-rep(NA,ctl$maxIter)
   for(t in 1:ctl$maxIter){ #one iteration = 1 epoch
     devb<-0 #accumulator for deviance across each minibatch
+    ll <- 0
     for(b in 1:B){
       mb<-mb_list[[b]]
       Ymb<-as.matrix(Y[,mb]) #assume this can fit in memory.
       szb<-sz[mb]
-      
+
       # avagrad optimizer, does not need ig$info, sensitive to learning rate, ...
       #... no penalty needed but has additional tuning params betas, eps, lr
       ig<-gf$infograd(Ymb, rfunc(U[mb,],V,offsets[mb]), sz=szb, grad_only=TRUE)
@@ -286,8 +295,9 @@ avagrad_memoized_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       eta_u<-1/(ctl$epsilon+sqrt(v_u[mb,]))
       U[mb,uid]<-U[mb,uid] - ctl$lr*(eta_u/l2norm(eta_u/sqrt(k)))*m_u[mb,]
       v_u[mb,]<-ctl$betas[2]*v_u[mb,]+(1-ctl$betas[2])*g_u^2
-      
+
       R<-rfunc(U[mb,],V,offsets[mb])
+      ll <- ll + sum(Ymb*R - exp(R))
       devb<-devb + gf$dev_func(Ymb,R,sz=szb)
       check_divergence(devb,"avagrad",ctl$lr)
       if(gf$glmpca_fam == "nb"){
@@ -300,22 +310,30 @@ avagrad_memoized_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
         gf<-glmpca_family(gf$glmpca_fam, nb_theta=pmin(NB_THETA_MAX,nb_theta))
       } #end of nb theta update
     } #end of loop over minibatches (end of epoch)
-    
+
     #update global params (loadings) V at end of epoch
     g_v<-rowSums(S,dims=2) #sum over 3D array accumulating sufficient stats
     m_v<-ctl$betas[1]*m_v+(1-ctl$betas[1])*g_v
     eta_v<-1/(ctl$epsilon+sqrt(v_v))
     V[,vid]<-V[,vid] - ctl$lr*(eta_v/l2norm(eta_v/sqrt(k)))*m_v
     v_v<-ctl$betas[2]*v_v+(1-ctl$betas[2])*g_v^2
-    
+
     #assess convergence after end of each epoch
     dev[t]<-devb
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && check_convergence(dev[t-1],dev[t],ctl$tol,ctl$minDev)){
       break
     }
+
+    ### P. NICOPL TIMING
+    time <- c(time, Sys.time())
+    print(Time)
+    ##Compute likelihood
+    LL <- c(LL, ll)
+    print(ll)
   }
-  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf)
+  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,
+       time=time, LL=LL)
 }
 
 #this one updates loadings V after each minibatch (ie more often)
@@ -337,15 +355,15 @@ avagrad_memoized_optimizer2<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   m_u<-v_u<-matrix(0,nrow=N,ncol=length(uid))
   m_v<-v_v<-matrix(0,nrow=J,ncol=Kv)
   # if(gf$glmpca_fam %in% c("nb","nb2")){ m_th<-v_th<- 0*gf$nb_theta }
-  
+
   #initialize minibatches (fixed for all epochs) and sufficient statistics
   mb_list<-create_minibatches(N,ctl$batch_size,randomize=TRUE)
   B<-length(mb_list)
   #3D array, grad of V will be rowSums(S,dims=2) (ie sum on the last dim)
-  S<-array(0,dim=c(J,Kv,B)) 
+  S<-array(0,dim=c(J,Kv,B))
   g_v<-m_v
   sz<-if(gf$glmpca_fam=="binom"){ gf$binom_n } else { NULL }
-  
+
   #run optimization
   dev<-rep(NA,ctl$maxIter)
   for(t in 1:ctl$maxIter){ #one iteration = 1 epoch
@@ -360,7 +378,7 @@ avagrad_memoized_optimizer2<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       #adj_factor<-N/mb_len
       Ymb<-as.matrix(Y[,mb]) #assume this can fit in memory.
       szb<-sz[mb]
-      
+
       # avagrad optimizer, does not need ig$info, sensitive to learning rate, ...
       #... no penalty needed but has additional tuning params betas, eps, lr
       ig<-gf$infograd(Ymb, rfunc(U[mb,],V,offsets[mb]), sz=szb, grad_only=TRUE)
@@ -396,7 +414,7 @@ avagrad_memoized_optimizer2<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
         gf<-glmpca_family(gf$glmpca_fam, nb_theta=pmin(NB_THETA_MAX,nb_theta))
       } #end of nb theta update
     } #end of loop over minibatches (end of epoch)
-    
+
     #assess convergence after end of each epoch
     dev[t]<-devb
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
@@ -429,7 +447,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   m_v<-v_v<-matrix(0,nrow=nrow(Y),ncol=length(vid))
   # if(gf$glmpca_fam %in% c("nb","nb2")){ m_th<-v_th<- 0*gf$nb_theta }
   sz<-if(gf$glmpca_fam=="binom"){ gf$binom_n } else { NULL }
-  
+
   #run optimization
   dev<-rep(NA,ctl$maxIter)
   dev_smooth<-rep(NA,ctl$maxIter)
@@ -448,7 +466,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       adj_factor<-N/mb_len
       Ymb<-as.matrix(Y[,mb]) #assume this can fit in memory.
       szb<-sz[mb]
-      
+
       # avagrad optimizer, does not need ig$info, sensitive to learning rate, ...
       #... no penalty needed but has additional tuning params betas, eps, lr
       ig<-gf$infograd(Ymb, rfunc(U[mb,],V,offsets[mb]), sz=szb, grad_only=TRUE)
@@ -463,7 +481,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       V[,vid]<-V[,vid] - ctl$lr*(eta_v/l2norm(eta_v/sqrt(k)))*m_v
       v_u[mb,]<-ctl$betas[2]*v_u[mb,]+(1-ctl$betas[2])*g_u^2
       v_v<-ctl$betas[2]*v_v+(1-ctl$betas[2])*g_v^2
-      
+
       R<-rfunc(U[mb,],V,offsets[mb])
       # if(gf$glmpca_fam %in% c("nb","nb2")){
       if(gf$glmpca_fam == "nb"){
@@ -485,7 +503,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
         gf<-glmpca_family(gf$glmpca_fam, nb_theta=pmin(NB_THETA_MAX,nb_theta))
       } #end of nb theta update
     } #end of loop over minibatches (end of epoch)
-    
+
     #assess convergence after end of each epoch
     dev[t]<-adj_factor*gf$dev_func(Ymb,R,sz=szb)
     check_divergence(dev[t],"avagrad",ctl$lr)
@@ -508,6 +526,6 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       # if(fit$coef["level"]<ctl$tol){ break }
     }
   }
-  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf, 
+  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,
        dev_smooth=check_dev_decr(dev_smooth[1:t]))
 }

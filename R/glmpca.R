@@ -263,7 +263,7 @@ glmpca<-function(Y, L, fam=c("poi","nb","nb2","binom","mult","bern"),
         message("Trying Fisher scoring with penalty: ",ctl$penalty)
       }
       e<-tryCatch(
-        fit<-fisher_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets),
+        fit<-fisher_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL),
         error_glmpca_divergence=function(e){ e },
         error_glmpca_dev_incr=function(e){ e }
       )

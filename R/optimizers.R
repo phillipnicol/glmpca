@@ -101,7 +101,8 @@ est_nb_theta_fisher<-function(Y,Mu,th,logscale_prior=c(0,1)){
   exp(u+grad/info)
 }
 
-fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
+fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                           time,LL){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -122,6 +123,13 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
   for(t in 1:ctl$maxIter){
     #rmse[t]<-sd(Y-ilfunc(rfunc(U,V,offsets)))
     dev[t]<-gf$dev_func(Y,rfunc(U,V,offsets),sz=sz)
+    ### P. NICOPL TIMING
+    time <- c(time,Sys.time())
+    ##Compute likelihood
+    R <- rfunc(U,V,offsets)
+    ll <- sum(Y*R-exp(R))
+    LL <- c(LL, ll)
+    print(ll)
     check_divergence(dev[t],"fisher",ctl$penalty)
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && check_convergence(dev[t-1],dev[t],ctl$tol,ctl$minDev)){
@@ -160,7 +168,7 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
       gf<-glmpca_family(gf$glmpca_fam, nb_theta=pmin(NB_THETA_MAX,nb_theta))
     }
   }
-  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf)
+  list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time)
 }
 
 #in the avagrad paper, lr=alpha (step size)

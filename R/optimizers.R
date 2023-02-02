@@ -531,18 +531,7 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     } #end of loop over minibatches (end of epoch)
 
     #assess convergence after end of each epoch
-    ### P. NICOPL TIMING
-    time <- c(time,Sys.time())
-    ##Compute likelihood
-    LL <- c(LL, ll)
-    print(ll)
-    if(length(LL) > 30) {
-      t <- length(LL)
-      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
-        #Convergence
-        return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
-      }
-    }
+
     dev[t]<-adj_factor*gf$dev_func(Ymb,R,sz=szb)
     check_divergence(dev[t],"avagrad",ctl$lr)
     j<-seq.int(max(1,t-10+1),t)
@@ -555,6 +544,19 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     #   j<-seq.int(max(1,t-B+1),t)
     #   dev_smooth[t]<-exp(tail(fitted(lm(log(dev[j])~j)),1))
     # }
+
+    ### P. NICOPL TIMING
+    time <- c(time,Sys.time())
+    ##Compute likelihood
+    LL <- c(LL, ll)
+    print(ll)
+    if(length(LL) > 30) {
+      t <- length(LL)
+      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+        #Convergence
+        return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
+      }
+    }
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && (dev_smooth[t]< dev[1])){
       #ensure at least one full pass through the data

@@ -129,11 +129,16 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     R <- rfunc(U,V,offsets)
     ll <- sum(Y*R-exp(R))
     LL <- c(LL, ll)
-
-    print(ll)
+    elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
+    cat(elapsed, ll, "\n")
     if(length(LL) > 30) {
       t <- length(LL)
-      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+      ratio <- 1
+
+      try({
+        ratio <- abs((LL[t] - LL[t-1])/LL[t])
+      })
+      if(ratio < 10^{-4}) {
         #Convergence
         return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
       }
@@ -222,14 +227,20 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
     R <- rfunc(U,V,offsets)
     ll <- sum(Y*R-exp(R))
     LL <- c(LL, ll)
+    elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
+    cat(elapsed, ll, "\n")
     if(length(LL) > 30) {
       t <- length(LL)
-      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+
+      ratio <- 1
+      try({
+        ratio <- abs((LL[t] - LL[t-1])/LL[t])
+      })
+      if(ratio < 10^{-4}) {
         #Convergence
         return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
       }
     }
-    print(ll)
     check_divergence(dev[t],"avagrad",ctl$lr)
     if(ctl$verbose){print_status(dev[t],t,gf$nb_theta)}
     if(t>ctl$minIter && check_convergence(dev[t-1],dev[t],ctl$tol,ctl$minDev)){
@@ -549,10 +560,15 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     time <- c(time,Sys.time())
     ##Compute likelihood
     LL <- c(LL, ll)
-    print(ll)
+    elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
+    cat(elapsed, ll, "\n")
     if(length(LL) > 30) {
       t <- length(LL)
-      if(abs((LL[t] - LL[t-1])/LL[t]) < 10^{-4}) {
+      ratio <- 1
+      try({
+        ratio <- abs((LL[t] - LL[t-1])/LL[t])
+      })
+      if(ratio < 10^{-4}) {
         #Convergence
         return(list(U=U, V=V, dev=check_dev_decr(dev[1:t]), gf=gf,LL=LL,time=time))
       }

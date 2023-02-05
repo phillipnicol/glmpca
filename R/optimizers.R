@@ -137,6 +137,10 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
 
       try({
         ratio <- abs((LL[t] - LL[t-1])/LL[t])
+
+        if(is.na(ratio)) {
+          ratio <- 1
+        }
       })
       if(ratio < 10^{-4}) {
         #Convergence
@@ -235,6 +239,10 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
       ratio <- 1
       try({
         ratio <- abs((LL[t] - LL[t-1])/LL[t])
+
+        if(is.na(ratio)) {
+          ratio <- 1
+        }
       })
       if(ratio < 10^{-4}) {
         #Convergence
@@ -567,6 +575,9 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
       ratio <- 1
       try({
         ratio <- abs((LL[t] - LL[t-1])/LL[t])
+        if(is.na(ratio)) {
+          ratio <- 1
+        }
       })
       if(ratio < 10^{-4}) {
         #Convergence

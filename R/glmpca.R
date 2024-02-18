@@ -248,13 +248,13 @@ glmpca<-function(Y, Y.oos=NULL,L, fam=c("poi","nb","nb2","binom","mult","bern"),
       }
       e<-tryCatch(
         if(minibatch=="none"){
-          fit<-avagrad_optimizer(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL,
+          fit<-avagrad_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL=LL,
                                  Y.oos)
         } else if(minibatch=="stochastic"){
-          fit<-avagrad_stochastic_optimizer(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,
+          fit<-avagrad_stochastic_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
                                             time=time,LL=LL,Y.oos)
         } else {
-          fit<-avagrad_memoized_optimizer(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets)
+          fit<-avagrad_memoized_optimizer(Y,U,V,uid,vid,ctl,gf,rfunc,offsets)
         },
         error_glmpca_divergence=function(e){ e },
         error_glmpca_dev_incr=function(e){ e }

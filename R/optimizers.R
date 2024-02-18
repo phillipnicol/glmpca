@@ -101,7 +101,7 @@ est_nb_theta_fisher<-function(Y,Mu,th,logscale_prior=c(0,1)){
   exp(u+grad/info)
 }
 
-fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+fisher_optimizer<-function(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,
                            time,LL){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
@@ -127,7 +127,7 @@ fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     time <- c(time,Sys.time())
     ##Compute likelihood
     R <- rfunc(U,V,offsets)
-    ll <- sum(Y*R-exp(R))
+    ll <- sum(Y.oos*R-exp(R))
     LL <- c(LL, ll)
     elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
     cat(elapsed, ll, "\n")
@@ -229,7 +229,7 @@ avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
     time <- c(time,Sys.time())
     ##Compute likelihood
     R <- rfunc(U,V,offsets)
-    ll <- sum(Y*R-exp(R))
+    ll <- sum(Y.oos*R-exp(R))
     LL <- c(LL, ll)
     elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
     cat(elapsed, ll, "\n")
@@ -562,7 +562,6 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
     # } else {
     #   j<-seq.int(max(1,t-B+1),t)
     #   dev_smooth[t]<-exp(tail(fitted(lm(log(dev[j])~j)),1))
-    # }
 
     ### P. NICOPL TIMING
     time <- c(time,Sys.time())

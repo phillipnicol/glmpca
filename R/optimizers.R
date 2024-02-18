@@ -101,8 +101,8 @@ est_nb_theta_fisher<-function(Y,Mu,th,logscale_prior=c(0,1)){
   exp(u+grad/info)
 }
 
-fisher_optimizer<-function(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,
-                           time,LL){
+fisher_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                           time,LL, Y.oos){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -198,7 +198,7 @@ fisher_optimizer<-function(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,
 #avagrad illustrated on toy function ...
 #https://github.com/willtownes/optimization-practice/blob/master/practice.Rmd#L159
 
-avagrad_optimizer<-function(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL){
+avagrad_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,time,LL,Y.oos){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients
@@ -469,8 +469,8 @@ avagrad_memoized_optimizer2<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets){
 
 #' @importFrom stats fitted lm
 #' @importFrom utils tail
-avagrad_stochastic_optimizer<-function(Y,Y.oos,U,V,uid,vid,ctl,gf,rfunc,offsets,
-                                       time=time,LL=LL){
+avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
+                                       time=time,LL=LL,Y.oos){
   #Y: the data matrix
   #U: initialized factors matrix, including all column covariates & coefficients
   #V: initialized loadings matrix, including all row covariates & coefficients

@@ -526,8 +526,9 @@ avagrad_stochastic_optimizer<-function(Y,U,V,uid,vid,ctl,gf,rfunc,offsets,
       v_u[mb,]<-ctl$betas[2]*v_u[mb,]+(1-ctl$betas[2])*g_u^2
       v_v<-ctl$betas[2]*v_v+(1-ctl$betas[2])*g_v^2
 
+      Ymb.oos <- as.matrix(Y.oos[,mb])
       R<-rfunc(U[mb,],V,offsets[mb])
-      ll <- ll + sum(Ymb*R-exp(R))
+      ll <- ll + sum(Ymb.oos*R-exp(R))
       # if(gf$glmpca_fam %in% c("nb","nb2")){
       if(gf$glmpca_fam == "nb"){
         th<-gf$nb_theta

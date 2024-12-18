@@ -240,12 +240,12 @@ glmpca<-function(Y, Y.oos=NULL,L, fam=c("poi","nb","nb2","binom","mult","bern"),
   LL <- c()
 
   ##Compute likelihood
-  R <- rfunc(U,V,offsets)
-  ll <- sum(Y.oos*R-exp(R))
-  LL <- c(LL, ll)
-  time <- c(time,Sys.time())
-  elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
-  cat(elapsed, ll, "\n")
+  #R <- rfunc(U,V,offsets)
+  #ll <- sum(Y.oos*R-exp(R))
+  #LL <- c(LL, ll)
+  #time <- c(time,Sys.time())
+  #elapsed <- difftime(time[length(time)],time[1],units="secs")[[1]]
+  #cat(elapsed, ll, "\n")
 
   #minimize the deviance using an optimizer
   fit<-NULL
